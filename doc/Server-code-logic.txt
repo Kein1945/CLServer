@@ -1,0 +1,65 @@
+# Общая информация
+Сервер состоит из 4 главных компонентов:
+- Daemon - ядро сервера, отвечает за логирование, запуск остальных компонентов
+- Client.Gateway - сервер клиентского шлюза, обрабатывает подключенных клиентов
+- CTI.Gateway - Компонент для работы с CTI сервером
+- Web.Gateway - веб интерфейс, основная цель обработка комманд со сторонних ресурсов
+
+# Daemon
+Ядро сервера состоит из двух классов
+## Daemon.Server
+Читает файл конфигурации, запускает компоненты
+## Daemon.EventHandler
+Объект хранящий соединение с базой.
+
+Основной метод `public void proceedEvent(Daemon.Events.EventInterface event)` - получает объект события, и передает ему подключение к базе данных, что бы объект выполнил запись события.
+
+## Daemon.Events
+Пакет предназначенный для хранения классов событий.
+Все классы событий унаследуются от абстрактного класса AbstractEvent и интерфейса EventInterface
+
+# Client.Gateway
+Сервер на базе Netty фреймворка
+Обрабатывает подключения на базе протокола клиент-сервера.
+
+## Обработка протокола
+Для кодирования и декодирования данных в соотвествии с протоколом, используются два класса обработчика для Netty:
+- `public class PacketFrameDecoder  extends ReplayingDecoder<VoidEnum>`
+- `public class PacketFrameEncoder extends OneToOneEncoder`
+За саму работу с пакетом данных(здесь и далее пакет подразумевает под собой объект класса наследованного от Client.Gateway.Packet) отвечает класс Client.Gateway.Packet и его методы:
+- `public static void write(Packet packet, ChannelBuffer buffer)`
+- `public static Packet read(ChannelBuffer buffer)`
+От это же класса и наследуются все классы пакетов протокола клиент-сервер.
+
+## Пакеты протокола
+Все классы пакетов протокола объявляются в java-пакете Client.Gateway.Packets.
+Каждый новый пакет должен быть добавлен в статический конструктор класса Packet, что бы encoder/decoder знал о его существовании
+Каждый класс пакета по умолчанию имеет три абстрактных метода:
+- public abstract Integer getId(); - служебная, возвращает id пакета
+- public abstract void get(ChannelBuffer buffer); - вызывается при получении пакета на сервере
+- public abstract void send(ChannelBuffer buffer); - вызывается при отправке пакета клиенту
+
+## Обработка входящих пакетов
+Все входящие пакеты передаются объекту класса *Client.Gateway.ClientHandler* метод `public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)`
+Который в свою очередь передает пакет данных объекту класса *Client.Gateway.ClientWorker* метод `public void acceptPacket(Packet packet)`.
+Метод ClientWorker.acceptPacket хранит логику обработки входящего подключения, служебных пакетов, что бы избежать неавторизованных клиентов. Здесь же вызывается и получается менеджер подключения к CTI.
+Если клиент авторизован, то все остальные пакеты передаются объекту класа *Client.Gateway.Client* метод `public void acceptPacket(Packet packet)`
+Который уже обрабатывает рабочие пакеты клиента, такие как смена статуса, совершения звонка и другие.
+
+# CTI.Gateway
+Пакет из двух классов
+- Manager - менеджер подключения к CTI серверу. Статические методы позволяют управлять пулом объектов Manager.
+- Connection - класс для работы с CTI сервером, обработки событий и других моментов, как авторизация на сервере, подключение.
+## CTI.Gateway.Manager
+Важные методы здесь:
+- public static Manager getManager(Client client) - возвращает в случае удачного подключения объект для работы с сервером.
+- public static Map<Client, Manager> getManagers() - возвращает объекты менеджеров, подключенных и существующих на данный момент.
+
+# Web.Gateway
+Пакет веб сервера. Используется для внешнего управления. Так же как и Client.Gateway работает на фреймворке Netty.
+Вызывает контроллер, которые следует добавить в статический констрктор класса Web.Gateway.Handler.
+Все контроллеры объявлются в пакете Web.Gateway.Controllers.
+
+## Web.Gateway.Controllers
+Каждый класс контроллера наследуются от абстрактного класса AbstractController и интерфейса ControllerInterface.
+

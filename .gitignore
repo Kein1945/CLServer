@@ -1,7 +1,7 @@
 ﻿
 build
 nbproject
-*.txt
+./*.txt
 *.log
 *.pdf
 *.mf
