@@ -13,38 +13,14 @@ import org.jboss.netty.util.CharsetUtil;
  *
  * @author bsalmanov
  */
-public class WarningPacket extends Packet{
-    
-    protected String message = "Unknown warning";
+public class WarningPacket extends NotificationPacket{
 
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message + "\0";
+    public WarningPacket() {
+        super("Unknwon warning");
     }
     
     @Override
     public Integer getId() {
         return Packet.WARNING;
     }
-
-    @Override
-    public void get(ChannelBuffer buffer) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-    
-    @Override
-    public String getInfo(){
-        return "Warning: " + this.message;
-    }
-
-    @Override
-    public void send(ChannelBuffer buffer) {
-        buffer.writeInt( message.length() );
-        ChannelBuffer ch = ChannelBuffers.copiedBuffer( message, CharsetUtil.UTF_8);
-        buffer.writeBytes(ch);
-    }
-    
 }

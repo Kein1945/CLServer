@@ -6,70 +6,71 @@ package Client.Gateway;
 
 import Client.Gateway.Packets.*;
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  *
  * @author bsalmanov
  */
-public abstract class Packet implements Cloneable {
+public abstract class Packet {
     protected static Map<Integer, Packet> packetMap = new HashMap();
-    public static Integer packetId = 0;
+    public static volatile Integer packetId = 0;
     
+    final public static Integer VERSION = 1;
+    
+    // Service Packets
     final public static Integer HELLO = 1;
-    final public static Integer WARNING = 2;
+    final public static Integer BTNMASK = 2;
     
-    final public static Integer ERROR = 3;
-    final public static Integer AUTHORIZE = 4;
+    final public static Integer INFO = 5;
+    final public static Integer WARNING = 6;
+    final public static Integer ERROR = 7;
     
-    final public static Integer SETSTATE = 5;
-    final public static Integer GETSTATE = 6;
-    final public static Integer UNKNOWN = 7;
-    final public static Integer CALLSTOP = 8;
-    final public static Integer CALLACCEPT = 9;
-    final public static Integer CALLDECLINE = 10;
-    final public static Integer CALLBEGIN = 11;
-    final public static Integer CALLCLEAR = 12;
+    // Agent packets
+    final public static Integer AUTHORIZE = 101;
+    final public static Integer SETSTATE = 105;
+    final public static Integer GETSTATE = 106;
     
-    final public static Integer HOLD = 13; // ----
-    final public static Integer UNHOLD = 14; // ----
+    // Call packets
+    final public static Integer CALL_BEGIN = 201;
     
-    final public static Integer REJECT = 15; // ----
-    final public static Integer ANSWER = 17; // ----
+    final public static Integer CALL_ANSWER = 202;
+    final public static Integer CALL_REJECT = 203;
     
-    final public static Integer BTNMASK = 18; // ----
+    final public static Integer CALL_HOLD = 204;
+    final public static Integer CALL_UNHOLD = 205;
     
-    final public static Integer NULL = 999;
+    final public static Integer CALL_END = 220;
     
     static {
         Packet.packetMap.put(Packet.HELLO, new HelloPacket());
         Packet.packetMap.put(Packet.AUTHORIZE, new AuthorizePacket());
-        Packet.packetMap.put(Packet.UNKNOWN, new UnknownPacket());
         
         Packet.packetMap.put(Packet.SETSTATE, new SetStatePacket());
         Packet.packetMap.put(Packet.GETSTATE, new GetStatePacket());
         
-        Packet.packetMap.put(Packet.CALLSTOP, new CallStopPacket());
-        Packet.packetMap.put(Packet.CALLACCEPT, new CallAcceptPacket());
-        Packet.packetMap.put(Packet.CALLDECLINE, new CallDeclinePacket());
-        Packet.packetMap.put(Packet.CALLBEGIN, new CallBeginPacket());
-        Packet.packetMap.put(Packet.CALLCLEAR, new CallClearPacket());
+        Packet.packetMap.put(Packet.CALL_BEGIN, new CallBeginPacket());
         
-        Packet.packetMap.put(Packet.NULL, new NullPacket());
+        Packet.packetMap.put(Packet.CALL_ANSWER, new CallAnswerPacket());
+        Packet.packetMap.put(Packet.CALL_REJECT, new CallRejectPacket());
+        
+        Packet.packetMap.put(Packet.CALL_HOLD, new CallHoldPacket());
+        Packet.packetMap.put(Packet.CALL_UNHOLD, new CallUnholdPacket());
+        
+        Packet.packetMap.put(Packet.CALL_END, new CallEndPacket());
+        
     }
     
     public static Packet read(ChannelBuffer buffer) throws IOException {
         Integer id = buffer.readInt(); // Получаем ID пришедшего пакета, чтобы определить, каким классом его читать
         Packet packet = (Packet)Packet.packetMap.get(id);
         if( null == packet){
-            packet = new UnknownPacket();
-            ((UnknownPacket)packet).setPacketCode(id);
-           Server.logger.error("?? Unknown packet: "+id);
+            packet = new ErrorPacket();
+            ((ErrorPacket)packet).setMessage("Unknown package with id " + id);
+           Server.logger.error("?? Unknown packet: " + id);
+           Packet.write(packet, buffer);
         } else {
             try {
                 packet = packet.getClass().newInstance();
@@ -89,13 +90,13 @@ public abstract class Packet implements Cloneable {
     }
 
     // Проблема с записью
-    //:TODO События от циски идут синхронно, наблюдаентся проблема
+    //:TODO События от циски идут синхронно, наблюдается проблема
     // Когда приходит событие о смене статуса и события начала звонка
     // Пакеты синхронно пишутся в поток что сбивает работу, надо решить этот вопрос
     // синхронизацией записи в канал клиента
     // В данный момент идет синхронизация записи для Всех(!) подключенных операторов
     // Что в боевых условиях бред
-    public synchronized static void write(Packet packet, ChannelBuffer buffer) {
+    public static void write(Packet packet, ChannelBuffer buffer) {
         buffer.writeInt(packet.getId()); // Отправляем ID пакета
         buffer.writeInt(packet.getPacketId()); // Отправляем ID пакета
         

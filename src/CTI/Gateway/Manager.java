@@ -32,37 +32,41 @@ public class Manager{
         this.connect = new Connection( this );
     }
     
-    public synchronized void connect() throws FailedToConnectException{
-        try{
-            this.connect.connect(
-                    this.conf.getProperty("cti.HostA","192.168.242.100"),
-                    Integer.parseInt( this.conf.getProperty("cti.PortA","42028") ),
-                    this.conf.getProperty("cti.HostB","192.168.242.101"),
-                    Integer.parseInt( this.conf.getProperty("cti.PortB","42028") ),
-                    Integer.parseInt( this.conf.getProperty("cti.HearBeat","0") ));
-        } catch (Connection.FailedToConnectException fail){
-            throw new FailedToConnectException();
-        }
-        try {
-            wait(4000); // Waiting events from ctios. If no event - connection fail
-        } catch (InterruptedException ignored) {
-        } finally {
-            if( ! this.connect.isConnected() )
-                throw new FailedToConnectException();
-        }
+    public boolean connect(){
+        return this.connect.connect(
+                this.conf.getProperty("cti.HostA","192.168.242.100"),
+                Integer.parseInt( this.conf.getProperty("cti.PortA","42028") ),
+                this.conf.getProperty("cti.HostB","192.168.242.101"),
+                Integer.parseInt( this.conf.getProperty("cti.PortB","42028") ),
+                Integer.parseInt( this.conf.getProperty("cti.HearBeat","0") )
+            );
     }
     
-    public synchronized void disconnect(){
+    public void disconnect(){
+        if( null != this.connect.getAgent())
+            this.connect.getAgent().Logout(null);
         this.connect.disconnect();
     }
     
-    public synchronized void onConnected(){
-        notify();
+    public boolean setAgentMode(String login, String pasword, String instrument, Integer extension){
+        return this.connect.setAgentMode(login, pasword, instrument, extension);
+    }
+    
+    public void loginAgent(){
+        connect.loginAgent();
+    }
+    
+    public void onConnected(){
+        client.onConnected();
     }
     
     public boolean isConnected(){
         return this.connect.isConnected();
     } // boolean isConnected
+    
+    public void onAgentMode(){
+        client.onAgentMode();
+    }
 
     public Client getClient() {
         return client;
@@ -75,35 +79,10 @@ public class Manager{
     public Integer getAgentState(){
         return this.getAgent().GetAgentState();
     }
-
-    /**
-     * Попытка авторизации с существующим клиентом
-     * @throws CTI.Gateway.Manager.FailToAuthorizeException 
-     */
-    public void authorize() throws FailToAuthorizeException{
-        if( ! this.connect.isConnected() ) // Так не должно случаться, но мы это проверим
-            logger.error("Try to authorize without connection");
-        String error = connect.setAgent(client.getLogin(), client.getPassword(), client.getInstrument(), client.getExtension());
-        if( !this.isAgentAuthorized() ){
-            throw new FailToAuthorizeException(error);
-        }
-        ready = true;
-    }
-    
-    /**
-     * Пытается авторизоваться либо выбрасывает исключения
-     * @throws CTI.Gateway.Manager.FailedToConnectException
-     * @throws CTI.Gateway.Manager.FailToAuthorizeException 
-     */
-    private synchronized void identifyClient() throws FailedToConnectException, FailToAuthorizeException {
-        if( ! this.connect.isConnected() )
-            this.connect();
-        this.authorize();
-    }
-    
+        
     public synchronized boolean isAgentAuthorized() {
         int iCurrentState = getAgent().GetAgentState();
-        return !( iCurrentState == CtiOs_Enums.AgentState.eUnknown);
+        return !( iCurrentState == CtiOs_Enums.AgentState.eUnknown || iCurrentState == CtiOs_Enums.AgentState.eLogout);
 
     } // isAgentLoggedIn
     
@@ -112,10 +91,7 @@ public class Manager{
      * @param state 
      */
     public void onAgentState(Integer state){
-        if( ready )
-            client.onState(state);
-        else
-            logger.trace("On agent without tt");
+        client.onState(state);
     }
     
     /**
@@ -133,23 +109,27 @@ public class Manager{
     protected Agent getAgent(){
         return connect.getAgent();
     }
+    
+    public void buttonEnablementMask(Integer mask){
+        client.onButtonEnablementMaskChange(mask);
+    }
     /**
      * Прерывает текущий звонок
      */
     public void clearCall(){
         Call c = this.connect.getSession().GetCurrentCall();
-        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_RELEASE & connect.getButtonEnablementMask()) > 0)){
-            c.ClearConnection( new Arguments() );
-        }
+//        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_RELEASE & connect.getButtonEnablementMask()) > 0)){
+//            c.ClearConnection( new Arguments() );
+//        }
     }
     /**
      * 
      */
     public void holdCall() {
         Call c = this.connect.getSession().GetCurrentCall();
-        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_HOLD & connect.getButtonEnablementMask()) > 0)){
-            c.Hold( new Arguments() );
-        }
+//        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_HOLD & connect.getButtonEnablementMask()) > 0)){
+//            c.Hold( new Arguments() );
+//        }
     }
     
     /**
@@ -169,7 +149,7 @@ public class Manager{
      * @param text 
      */
     protected synchronized void onWarning(String text){
-        client.onWarning(text);
+        client.sendWarning(text);
     }
     
     /**
@@ -194,7 +174,7 @@ public class Manager{
         Manager m = (Manager)connections.get(client); // static Map<Client, Manager> connections = new ConcurrentHashMap()
         if( null == m){
             m = new Manager(client);
-            m.identifyClient();
+//            m.identifyClient();
             connections.put(client, m);
         }
         return m;
@@ -224,15 +204,28 @@ public class Manager{
         return connections.remove(client);
     }
     
-    @Override
-    protected void finalize() throws Throwable {
-        this.connect.disconnect(); // Обязательно закроем подключение, возможно еще надо слать изменение статуса на NotReady
-        super.finalize();
-    }
-
-
     void onCallClear(Call c) {
         client.onCallClear(c);
+    }
+    
+    public void onError(String text){
+        client.sendError(text);
+    }
+
+    void onPostLogout() {
+        //:TODO Отправить клиенту уведомление о logout
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    void onLoginFail(String error) {
+        client.onLoginFail(error);
+    }
+
+    void onLogin(){
+        if( isAgentAuthorized() )
+            client.onLogin();
+        else
+            client.onLoginFail("Please connect phone");
     }
     
     public class FailedToConnectException extends Exception{}

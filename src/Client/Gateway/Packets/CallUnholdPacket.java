@@ -11,16 +11,16 @@ import org.jboss.netty.buffer.ChannelBuffer;
  *
  * @author bsalmanov
  */
-public class CallDeclinePacket extends Packet {
+public class CallUnholdPacket extends Packet {
 
     @Override
     public Integer getId() {
-        return Packet.CALLDECLINE;
+        return Packet.CALL_UNHOLD;
     }
 
     @Override
     public void get(ChannelBuffer buffer) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        
     }
 
     @Override

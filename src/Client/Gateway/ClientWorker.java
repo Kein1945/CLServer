@@ -5,7 +5,9 @@
 package Client.Gateway;
 
 import CTI.Gateway.Manager;
-import Client.Gateway.Packets.*;
+import Client.Gateway.Packets.AuthorizePacket;
+import Client.Gateway.Packets.ErrorPacket;
+import Client.Gateway.Packets.HelloPacket;
 import Daemon.Events.AgentStateEvent;
 import org.jboss.netty.channel.Channel;
 /**
@@ -15,20 +17,27 @@ import org.jboss.netty.channel.Channel;
 public class ClientWorker {
     private Channel channel;
     private boolean isHelloAccepted = false;
+    
     private Client client;
+    private Manager cti_session;
 
     public ClientWorker(Channel channel) {
         this.channel = channel;
         // Тут мы создаем клиента, не важно что он не авторизован и еще не идентифицирован, тем не менее это клиент.
         this.client = new Client(channel);
+        this.cti_session = new Manager(this.client);
+        client.setManager(cti_session);
+    }
+    
+    public boolean ctiConnect(){
+        return cti_session.connect();
     }
     
     /**
      * Вызывается при закрытии соединения
      */
     public void disconnectedFromChannel(){
-        this.client.getManager().disconnect();
-        Manager.removeManager(this.client);
+        cti_session.disconnect();
         if( channel.isConnected() )
             channel.disconnect();
         AgentStateEvent e = new AgentStateEvent(client.getLogin(), Client.State.LOGOUT);
@@ -43,60 +52,55 @@ public class ClientWorker {
      * @param packet 
      */
     public void acceptPacket(Packet packet){
-        if( packet instanceof UnknownPacket || packet instanceof NullPacket){// Если мы получили не известный пакет
-            channel.write(packet); // Отправим его клиенту, что бы знал что проблемы на клиенте - пакет не соотвествует протоколу
-            return;
-        }
-        if( isHelloAccepted ){ // Если с нами поздоровались
+        if( !isUnderstandingReached() ){
+            // Если с нами еще не поздоровались
+            if( packet instanceof HelloPacket ){
+                isHelloAccepted = acceptHello( (HelloPacket)packet );
+            } else { // Вообще странное место, пакет известный но с нами не поздоровались. Сообщим клиенту но надо бы залогировать
+                this.client.sendError("Server required hello."); // Похоже на попытку обхода
+                Server.logger.warn("Received packet");
+            }
+        } else { // Если с нами поздоровались
             if( this.client.isAuthorized() ){ // Если клиент авторизован - мы можем выполнять всякие классные штуки
                 client.acceptPacket(packet); // Сюда попадают разрешенные пакеты всех авторизованных клиентов
             } else { // Если не авторизован то попросим его об этом
                 if( packet instanceof AuthorizePacket){
-                    // Сообщим объекту клиента, что за клиент
-                    // Объект client сам вытащит нужные поля из пакета
-                    client.setAuthorizationObject( (AuthorizePacket) packet );
-                    try{
-                        Manager m = Manager.getManager( this.client ); // Тут мы получаем менеджера подключения к CTI
-                        // Если вдруг чего пошло не так, то мы получим исключения, которые будут сигнализировать о провале авторизаии
-                        client.setManager(m);
-                        ((AuthorizePacket)packet).setCode( AuthorizePacket.AUTHORIZATION_OK );
-                    } catch(Manager.FailedToConnectException fail){ // Нет соединения с сервером CTI - похоже на внешщние проблемы
-                        ((AuthorizePacket)packet).setReason( "Failed to connect to CTI server" );
-                        ((AuthorizePacket)packet).setCode( AuthorizePacket.NOT_AUTHORIZED_YET );
-                    } catch (Manager.FailToAuthorizeException authFail){ // Ошибка авторизации
-                        ((AuthorizePacket)packet).setReason( authFail.getMessage() );
-                        ((AuthorizePacket)packet).setCode( AuthorizePacket.NOT_AUTHORIZED_YET );
-                    } finally{
-                        channel.write(packet);
+                    AuthorizePacket ap = (AuthorizePacket) packet;
+                    Server.logger.trace("Authorization");
+                    if( !cti_session.setAgentMode(ap.getLogin(), ap.getPassword(), ap.getInstrument(), ap.getExtension()) ){
+                        client.sendError("Fail to set agent mode");
                     }
                 } else { // Странное место, не авторизовались, а уже шлют комманды, надо бы писать в лог.
-                    WarningPacket e = new WarningPacket();
-                    e.setMessage("Server required authorization.");
-                    channel.write(e);
+                    client.sendWarning("Server required authorization.");
                 }
             }
             
-        } else { // Если с нами еще не поздоровались
-            if( packet instanceof HelloPacket){
-                if ( ((HelloPacket)packet).getVersion() >= Packet.VERSION ) { // Сравним версии протокола,
-                    //  с ростом версии, можно сделать проверку с учетом совместимости
-                    channel.write( packet ); // Если успешно, то отправим ему пакет Hello
-                    isHelloAccepted = true;
-                } else { // А вот тут пробелмы с протоколом
-                    ErrorPacket e = new ErrorPacket(); // Отправим ему пакет с ошибкой
-                    e.setError("Server protocol version: "
-                            + Packet.VERSION + ". Your client protocol version("
-                            +((HelloPacket)packet).getVersion()+") is unsupported.");
-                    channel.write(e);
-                    disconnectedFromChannel();
-                }
-            } else { // Вообще странное место, пакет известный но с нами не поздоровались. Сообщим клиенту но надо бы залогировать
-                WarningPacket e = new WarningPacket(); // Похоже на попытку обхода
-                e.setMessage("Server required hello packet.");
-                channel.write(e);
-                Server.logger.warn("Server required hello packet!");
-            }
         }
         
+    }
+    
+    private boolean isUnderstandingReached(HelloPacket hello){
+        return isHelloAccepted || hello.getVersion() == Packet.VERSION; // Сравним версии протокола,
+            //  с ростом версии, можно сделать проверку с учетом совместимости
+    }
+    
+    public boolean isUnderstandingReached(){
+        return isHelloAccepted;
+    }
+    
+    private boolean acceptHello(HelloPacket hello){
+        if( isUnderstandingReached( hello ) ){ // Если "взаимопонимание достигнуто",
+            boolean ctiConnect = this.ctiConnect();
+            Server.logger.warn("Connect cti is "+ctiConnect);
+            return true;
+        } else {
+            ErrorPacket e = new ErrorPacket(); // Отправим ему пакет с ошибкой
+            e.setMessage("Server protocol version: "
+                    + Packet.VERSION + ". Your client protocol version("
+                    + hello.getVersion()+") is unsupported.");
+            channel.write(e);
+            disconnectedFromChannel();
+            return false;
+        }
     }
 }

@@ -50,7 +50,7 @@ public class AuthorizePacket extends Packet{
     @Override
     public String getInfo(){
         return "Authorization ["
-                +((0==this.code)?(this.Login+":"+this.Password):this.reason)
+                +((0==this.code)?(this.Login+":"+this.Password+"@"+this.Instrument+"/"+this.Extension):this.reason)
                 + "]";
     }
     

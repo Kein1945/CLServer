@@ -5,21 +5,19 @@
 package Client.Gateway.Packets;
 
 import Client.Gateway.Packet;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  *
  * @author bsalmanov
  */
-public class ErrorPacket extends NotificationPacket{
+public class InfoPacket extends NotificationPacket{
 
-
-    public ErrorPacket() {
-        super("Unknown error");
+    public InfoPacket() {
+        super("Unkown notification");
     }
     
     @Override
     public Integer getId() {
-        return Packet.ERROR;
+        return Packet.INFO;
     }
 }

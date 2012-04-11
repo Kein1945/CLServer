@@ -11,21 +11,21 @@ import org.jboss.netty.buffer.ChannelBuffer;
  *
  * @author bsalmanov
  */
-public class NullPacket extends Packet {
+public class CallRejectPacket extends Packet {
 
     @Override
     public Integer getId() {
-        return Packet.NULL;
+        return Packet.CALL_REJECT;
     }
 
     @Override
     public void get(ChannelBuffer buffer) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        
     }
 
     @Override
     public void send(ChannelBuffer buffer) {
-        
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
 }

@@ -25,7 +25,7 @@ public class ButtonMaskPacket extends Packet{
     
     @Override
     public Integer getId() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return Packet.BTNMASK;
     }
 
     @Override

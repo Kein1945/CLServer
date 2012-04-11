@@ -30,9 +30,5 @@ public class HelloPacket  extends Packet {
     }
 
     @Override
-    public void send(ChannelBuffer buffer) {
-        //ChannelBuffer ch = ChannelBuffers.copiedBuffer("Hello maaaan!", CharsetUtil.UTF_8);
-        //buffer.writeBytes(ch);
-        
-    }
+    public void send(ChannelBuffer buffer) { }
 }

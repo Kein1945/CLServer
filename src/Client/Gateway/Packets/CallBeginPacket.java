@@ -36,7 +36,7 @@ public class CallBeginPacket extends Packet{
     
     @Override
     public Integer getId() {
-        return Packet.CALLBEGIN;
+        return Packet.CALL_BEGIN;
     }
 
     @Override

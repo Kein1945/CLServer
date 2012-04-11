@@ -15,7 +15,7 @@ public class HoldPacket extends Packet {
 
     @Override
     public Integer getId() {
-        return Packet.HOLD;
+        return Packet.CALL_HOLD;
     }
 
     @Override
