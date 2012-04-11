@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package Client.Gateway.Packets;
+package Operator.Gateway.Packets;
 
-import Client.Gateway.Packet;
-import Client.Gateway.Server;
+import Operator.Gateway.Packet;
+import Operator.Gateway.Server;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.util.CharsetUtil;

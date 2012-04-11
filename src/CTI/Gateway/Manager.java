@@ -4,21 +4,18 @@
  */
 package CTI.Gateway;
 
-import Client.Gateway.Client;
+import Operator.Gateway.Client;
 import com.cisco.cti.ctios.cil.Agent;
 import com.cisco.cti.ctios.cil.Arguments;
 import com.cisco.cti.ctios.cil.Call;
 import com.cisco.cti.ctios.cil.CtiOs_Enums;
 import com.cisco.cti.ctios.util.CtiOs_IKeywordIDs;
-import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 public class Manager{
     public static final Logger logger = Logger.getLogger(Manager.class);
     // Все объекты класса всех подключенных операторов
-    protected static Map<Client, Manager> connections = new ConcurrentHashMap();
     protected Properties conf;
     
     protected Client client;
@@ -161,48 +158,7 @@ public class Manager{
         logger.info("Incomming dial: " + DialNumber + " > " + DeviceId);
         client.onCommingDial(DialNumber, DeviceId);
     }
-    
-    /**
-     * 
-     * Возвращает объект менеджер подключения, либо генерирует исключения
-     * @param client
-     * @return
-     * @throws CTI.Gateway.Manager.FailedToConnectException
-     * @throws CTI.Gateway.Manager.FailToAuthorizeException 
-     */
-    public static Manager getManager(Client client) throws FailedToConnectException, FailToAuthorizeException{
-        Manager m = (Manager)connections.get(client); // static Map<Client, Manager> connections = new ConcurrentHashMap()
-        if( null == m){
-            m = new Manager(client);
-//            m.identifyClient();
-            connections.put(client, m);
-        }
-        return m;
-    }
-    
-    /**
-     * 
-     * Метод используется для получения менеджера довервенными лицами, то есть для администраторов
-     * @param clientLogin
-     * @return 
-     */
-    public static Manager getManager(String clientLogin){
-        for (Map.Entry<Client, Manager> entry : connections.entrySet()) {
-            Client client = entry.getKey();
-            if( clientLogin.toLowerCase().equals(client.getLogin().toLowerCase()) ){
-                return (Manager) entry.getValue();
-            }
-        }
-        return null;
-    }
-    
-    public static Map<Client, Manager> getManagers(){
-        return connections;  // static Map<Client, Manager> connections = new ConcurrentHashMap()
-    }
-    
-    public static Manager removeManager(Client client){
-        return connections.remove(client);
-    }
+
     
     void onCallClear(Call c) {
         client.onCallClear(c);

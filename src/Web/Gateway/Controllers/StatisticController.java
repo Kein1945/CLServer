@@ -5,6 +5,7 @@
 package Web.Gateway.Controllers;
 
 import CTI.Gateway.Manager;
+import Operator.Gateway.Client;
 import Web.Gateway.Server;
 import java.text.NumberFormat;
 import java.util.Date;
@@ -28,12 +29,12 @@ public class StatisticController extends AbstractController implements Controlle
     public void proceed(HttpRequest request) {
         StringBuilder buffer = new StringBuilder();
         
-        Map<Client.Gateway.Client, Manager> managers = Manager.getManagers();
+        Map<Client, Manager> managers = Client.getClients();
         buffer.append("<h4>").append(managers.size()).append(" agent connected</h4><hr/>");
         if( !managers.isEmpty() ){
             buffer.append("<ul>");
-            for (Map.Entry<Client.Gateway.Client, Manager> entry : managers.entrySet()) {
-                Client.Gateway.Client client = entry.getKey();
+            for (Map.Entry<Client, Manager> entry : managers.entrySet()) {
+                Client client = entry.getKey();
                 Manager manager = entry.getValue();
                 buffer.append("<li>").append(client.getLogin()).append("</li>");
             }
@@ -49,14 +50,14 @@ public class StatisticController extends AbstractController implements Controlle
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes( timeLast ))
                     )
                 ).append("</p>");
-        buffer.append("<p><strong>Client accept packets</strong>: ").append(Client.Gateway.Server.acceptedPackets).append(", ")
-                .append(String.format("%.3f per minute", (float)(Client.Gateway.Server.acceptedPackets/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
+        buffer.append("<p><strong>Client accept packets</strong>: ").append(Operator.Gateway.Server.acceptedPackets).append(", ")
+                .append(String.format("%.3f per minute", (float)(Operator.Gateway.Server.acceptedPackets/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
                 .append("</p>");
-        buffer.append("<p><strong>Client send packets</strong>: ").append(Client.Gateway.Server.sendPackets).append(", ")
-                .append(String.format("%.3f per minute", (float)(Client.Gateway.Server.sendPackets/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
+        buffer.append("<p><strong>Client send packets</strong>: ").append(Operator.Gateway.Server.sendPackets).append(", ")
+                .append(String.format("%.3f per minute", (float)(Operator.Gateway.Server.sendPackets/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
                 .append("</p>");
-        buffer.append("<p><strong>Client total packets</strong>: ").append((Client.Gateway.Server.sendPackets+Client.Gateway.Server.acceptedPackets)).append(", ")
-                .append(String.format("%.3f per minute", (float)((Client.Gateway.Server.sendPackets+Client.Gateway.Server.acceptedPackets)/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
+        buffer.append("<p><strong>Client total packets</strong>: ").append((Operator.Gateway.Server.sendPackets+Operator.Gateway.Server.acceptedPackets)).append(", ")
+                .append(String.format("%.3f per minute", (float)((Operator.Gateway.Server.sendPackets+Operator.Gateway.Server.acceptedPackets)/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))
                 .append("</p>");
         buffer.append("<p><strong>Webgate requests amount</strong>: ").append(Server.requests).append(", ")
                 .append(String.format("%.3f per minute", (float)(Server.requests/ (TimeUnit.MILLISECONDS.toMinutes( timeLast )+1)) ))

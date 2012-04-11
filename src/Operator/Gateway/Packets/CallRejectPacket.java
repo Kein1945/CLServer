@@ -2,20 +2,20 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package Client.Gateway.Packets;
+package Operator.Gateway.Packets;
 
-import Client.Gateway.Packet;
+import Operator.Gateway.Packet;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  *
  * @author bsalmanov
  */
-public class CallAnswerPacket extends Packet {
+public class CallRejectPacket extends Packet {
 
     @Override
     public Integer getId() {
-        return Packet.CALL_ANSWER;
+        return Packet.CALL_REJECT;
     }
 
     @Override

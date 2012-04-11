@@ -2,9 +2,19 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package Client.Gateway;
+package Operator.Gateway;
 
-import Client.Gateway.Packets.*;
+import Operator.Gateway.Packets.CallUnholdPacket;
+import Operator.Gateway.Packets.SetStatePacket;
+import Operator.Gateway.Packets.CallAnswerPacket;
+import Operator.Gateway.Packets.CallBeginPacket;
+import Operator.Gateway.Packets.GetStatePacket;
+import Operator.Gateway.Packets.ErrorPacket;
+import Operator.Gateway.Packets.CallRejectPacket;
+import Operator.Gateway.Packets.CallEndPacket;
+import Operator.Gateway.Packets.HelloPacket;
+import Operator.Gateway.Packets.AuthorizePacket;
+import Operator.Gateway.Packets.CallHoldPacket;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;

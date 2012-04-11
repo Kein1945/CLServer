@@ -2,14 +2,26 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package Client.Gateway;
+package Operator.Gateway;
 
+import Operator.Gateway.Packets.NotificationPacket;
+import Operator.Gateway.Packets.SetStatePacket;
+import Operator.Gateway.Packets.ButtonMaskPacket;
+import Operator.Gateway.Packets.WarningPacket;
+import Operator.Gateway.Packets.CallBeginPacket;
+import Operator.Gateway.Packets.HoldPacket;
+import Operator.Gateway.Packets.ErrorPacket;
+import Operator.Gateway.Packets.CallEndPacket;
+import Operator.Gateway.Packets.HelloPacket;
+import Operator.Gateway.Packets.AuthorizePacket;
+import Operator.Gateway.Packets.InfoPacket;
 import CTI.Gateway.Manager;
-import Client.Gateway.Packets.*;
 import Daemon.Events.AgentStateEvent;
 import Daemon.Events.CallEvent;
 import com.cisco.cti.ctios.cil.Call;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jboss.netty.channel.Channel;
@@ -21,6 +33,9 @@ import org.jboss.netty.channel.ChannelFuture;
  */
 public class Client {
 
+    protected static Map<Client, Manager> connections = new ConcurrentHashMap();
+
+    
     protected boolean authorized = false;
     protected String Login;
     protected String Password;
@@ -37,48 +52,10 @@ public class Client {
         this.manager = manager;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (!(obj instanceof Client)) {
-            return false;
-        }
-        Client c = (Client) obj;
-        return hashCode() == c.hashCode();
-        /*
-         * Login.equals(c.getLogin()) && Password.equals(c.getPassword()) &&
-         * Instrument.equals(c.getInstrument()) && Extension.equals(c.getExtension());
-         */
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 5;
-        hash = 29 * hash + Objects.hashCode(this.Login);
-        hash = 29 * hash + Objects.hashCode(this.Password);
-        hash = 29 * hash + Objects.hashCode(this.Instrument);
-        hash = 29 * hash + Objects.hashCode(this.Extension);
-        return hash;
-    }
-
-    public void setAuthorizationObject(AuthorizePacket packet) {
-        Login = packet.getLogin();
-        Password = packet.getPassword();
-        Instrument = packet.getInstrument();
-        Extension = packet.getExtension();
-    }
-
     public boolean isAuthorized() {
         return authorized;
     }
 
-    public void setAuthorized(boolean authorized) {
-        this.authorized = authorized;
-        AgentStateEvent e = new AgentStateEvent(Login, Client.State.LOGIN);
-        Daemon.Server.events.proceedEvent(e);
-    }
 
     public Client(Channel channel) {
         this.channel = channel;
@@ -132,6 +109,10 @@ public class Client {
     public void onConnected() {
         channel.write(new HelloPacket());
     }
+    
+    public void onDisconnected(){
+        removeClient(this);
+    }
 
     public void onAgentMode(){
         //AuthorizePacket ap = new AuthorizePacket();
@@ -141,6 +122,8 @@ public class Client {
     }
     
     public void onLogin(){
+        authorized = true;
+        connections.put(this, this.manager);
         AuthorizePacket ap = new AuthorizePacket();
         ap.setCode( AuthorizePacket.AUTHORIZATION_OK );
         channel.write(ap);
@@ -191,18 +174,42 @@ public class Client {
         sendNotification(new ErrorPacket(), text);
         manager.disconnect();
     }
-
     public void sendWarning(String text) {
         sendNotification(new WarningPacket(), text);
     }
-
     public void sendInfo(String text) {
         sendNotification(new InfoPacket(), text);
     }
-
     private void sendNotification(NotificationPacket notify, String message) {
         notify.setMessage(message);
         channel.write(notify);
+    }
+    
+    
+    
+    public static Map<Client, Manager> getClients(){
+        return connections;  // static Map<Client, Manager> connections = new ConcurrentHashMap()
+    }
+    
+    public static Manager removeClient(Client client){
+        return connections.remove(client);
+    }
+    
+    
+    /**
+     * 
+     * Метод используется для получения клиента по имени, если он активен
+     * @param clientLogin
+     * @return 
+     */
+    public static Manager getClient(String clientLogin){
+        for (Map.Entry<Client, Manager> entry : connections.entrySet()) {
+            Client client = entry.getKey();
+            if( clientLogin.toLowerCase().equals(client.getLogin().toLowerCase()) ){
+                return (Manager) entry.getValue();
+            }
+        }
+        return null;
     }
 
     public interface State {

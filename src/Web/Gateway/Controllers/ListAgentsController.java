@@ -5,7 +5,7 @@
 package Web.Gateway.Controllers;
 
 import CTI.Gateway.Manager;
-import Client.Gateway.Client;
+import Operator.Gateway.Client;
 import java.util.Map;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 /**
@@ -21,7 +21,7 @@ public class ListAgentsController extends AbstractController implements Controll
 
     @Override
     public void proceed(HttpRequest request) {
-        Map<Client, Manager> managers = Manager.getManagers();
+        Map<Client, Manager> managers = Client.getClients();
         StringBuilder buffer = new StringBuilder();
         buffer.append("<p>").append(managers.size()).append(" agent connected</p>");
         if( !managers.isEmpty() ){

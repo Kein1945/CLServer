@@ -4,7 +4,7 @@
  */
 package Web.Gateway.Controllers;
 
-import Client.Gateway.Server;
+import Operator.Gateway.Server;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

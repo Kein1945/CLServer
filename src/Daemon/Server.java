@@ -42,7 +42,7 @@ public class Server {
         }
         
         // Start gates -----------------------
-        if( !Client.Gateway.Server.start() ) {
+        if( !Operator.Gateway.Server.start() ) {
             logger.error("Controll gateway failed to start");
             return;
         }

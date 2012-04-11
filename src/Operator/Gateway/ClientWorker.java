@@ -2,12 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package Client.Gateway;
+package Operator.Gateway;
 
 import CTI.Gateway.Manager;
-import Client.Gateway.Packets.AuthorizePacket;
-import Client.Gateway.Packets.ErrorPacket;
-import Client.Gateway.Packets.HelloPacket;
+import Operator.Gateway.Packets.AuthorizePacket;
+import Operator.Gateway.Packets.ErrorPacket;
+import Operator.Gateway.Packets.HelloPacket;
 import Daemon.Events.AgentStateEvent;
 import org.jboss.netty.channel.Channel;
 /**
@@ -43,6 +43,7 @@ public class ClientWorker {
         AgentStateEvent e = new AgentStateEvent(client.getLogin(), Client.State.LOGOUT);
         Daemon.Server.events.proceedEvent(e);
         Server.logger.info("Client "+client.getLogin() + " disconnected.");
+        client.onDisconnected();
     }
     
     /**

@@ -25,7 +25,7 @@ public class MakeCallController extends AbstractController implements Controller
         String[] parts = this.parseUrl();
         String ntlmUser = parts[1];
         String number = parts[2];
-        Manager manager = CTI.Gateway.Manager.getManager(ntlmUser);
+        Manager manager = Operator.Gateway.Client.getClient(ntlmUser);
         if( null != manager ){
             proceedOK(manager, number);
         } else {
