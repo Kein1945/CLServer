@@ -80,7 +80,8 @@ public class Connection implements IGenericEvents {
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTPASSWORD, password);
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTINSTRUMENT, instrument);
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_PERIPHERALID, extension);
-        agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AUTOLOGIN, 1 );
+        agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AUTOLOGIN, 1  );
+        
         return 1 == session.SetAgent( agent );
     }
     
@@ -122,7 +123,7 @@ public class Connection implements IGenericEvents {
     public void setAgentState(Integer state){
         Arguments rReqArgs = new Arguments();
         rReqArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTSTATE, state);
-        rReqArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_EVENTREASONCODE, "1234");
+        rReqArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTID, getAgent().GetValueString( CtiOs_IKeywordIDs.CTIOS_AGENTID ));
         
         getAgent().SetAgentState(rReqArgs);
     }
@@ -219,6 +220,11 @@ public class Connection implements IGenericEvents {
                 break;
             case CtiOs_Enums.EventID.eCallBeginEvent:
                 //logger.trace("Call Event!");
+                // Я не знаю это зачем, но пусть на всякий случай ;)
+		String sUID = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
+		Call rCall = (Call) session.GetObjectFromObjectID(sUID);
+		session.SetCurrentCall(rCall);
+                
                 String Number = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_ANI);
                 String DeviceId = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_DEVICEID);
                 currentCallType = rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_CALLTYPE);
@@ -229,6 +235,7 @@ public class Connection implements IGenericEvents {
             case CtiOs_Enums.EventID.eCallDeliveredEvent:
                 currentCall = rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
                 break;
+            // Generated after answer call
             case CtiOs_Enums.EventID.eCallEstablishedEvent:
                 //manager.getClientAgent().callStart();
                 c = session.GetCurrentCall();
@@ -242,8 +249,15 @@ public class Connection implements IGenericEvents {
                     args.SetValueUInt("call.duration", 0L);
                     rRequestArgs.SetValue(CtiOs_IKeywordIDs.CTIOS_ECC, args);
                 }
+                manager.onCallEstablished();
                 break;
+            // Generated after unheld call
             case CtiOs_Enums.EventID.eCallRetrievedEvent:
+                manager.onUnheld();
+                break;
+            case CtiOs_Enums.EventID.eCallHeldEvent:
+                manager.onHold();
+                break;
             case CtiOs_Enums.EventID.eRTPStartedEvent:
                 //manager.getClientAgent().callResume();
                 

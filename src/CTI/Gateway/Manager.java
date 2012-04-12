@@ -115,18 +115,12 @@ public class Manager{
      */
     public void clearCall(){
         Call c = this.connect.getSession().GetCurrentCall();
-//        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_RELEASE & connect.getButtonEnablementMask()) > 0)){
-//            c.ClearConnection( new Arguments() );
-//        }
     }
     /**
      * 
      */
     public void holdCall() {
-        Call c = this.connect.getSession().GetCurrentCall();
-//        if( null != c && ((CtiOs_Enums.ButtonEnablement.ENABLE_HOLD & connect.getButtonEnablementMask()) > 0)){
-//            c.Hold( new Arguments() );
-//        }
+        this.connect.getSession().GetCurrentCall().Hold(new Arguments());
     }
     
     /**
@@ -178,10 +172,37 @@ public class Manager{
     }
 
     void onLogin(){
-        if( isAgentAuthorized() )
+        if( isAgentAuthorized() ){
+            if(getAgentState() == CtiOs_Enums.AgentState.eLogout){
+                //setAgentState( CtiOs_Enums.AgentState.eNotReady );
+            }
             client.onLogin();
-        else
+        } else
             client.onLoginFail("Please connect phone");
+    }
+
+    public void answerCall() {
+        this.connect.getSession().GetCurrentCall().Answer( new Arguments() );
+    }
+
+    void onCallEstablished() {
+        client.onCallEsablishedEvent();
+    }
+
+    public void releaseCall() {
+        this.connect.getSession().GetCurrentCall().ClearConnection( new Arguments() );
+    }
+
+    void onUnheld() {
+        this.client.onUnheld();
+    }
+
+    public void unholdCall() {
+        this.connect.getCurrentCall().Retrieve(new Arguments());
+    }
+
+    void onHold() {
+        this.client.onHold();
     }
     
     public class FailedToConnectException extends Exception{}

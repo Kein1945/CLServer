@@ -51,9 +51,9 @@ public class ClientHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
                 // На канале произошло исключение. Выводим ошибку, закрываем канал.
-        worker.disconnectedFromChannel();
-        Server.logger.error("Exception from downstream: " + e.getCause());
         e.getCause().printStackTrace();
+        Server.logger.error("Exception from downstream: " + e.getCause());
+        worker.disconnectedFromChannel();
         ctx.getChannel().close();
     }
 }

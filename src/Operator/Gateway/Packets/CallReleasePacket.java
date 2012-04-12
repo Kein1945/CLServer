@@ -11,11 +11,11 @@ import org.jboss.netty.buffer.ChannelBuffer;
  *
  * @author bsalmanov
  */
-public class CallHoldPacket extends Packet{
+public class CallReleasePacket extends Packet {
 
     @Override
     public Integer getId() {
-        return Packet.CALL_HOLD;
+        return Packet.CALL_RELEASE;
     }
 
     @Override
@@ -25,6 +25,7 @@ public class CallHoldPacket extends Packet{
 
     @Override
     public void send(ChannelBuffer buffer) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
 }

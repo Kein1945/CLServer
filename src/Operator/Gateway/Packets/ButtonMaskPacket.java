@@ -32,6 +32,11 @@ public class ButtonMaskPacket extends Packet{
     public void get(ChannelBuffer buffer) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+    
+    @Override
+    public String getInfo(){
+        return "Button mask "+this.bitmask;
+    }
 
     @Override
     public void send(ChannelBuffer buffer) {

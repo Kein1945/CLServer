@@ -18,6 +18,7 @@ import Operator.Gateway.Packets.InfoPacket;
 import CTI.Gateway.Manager;
 import Daemon.Events.AgentStateEvent;
 import Daemon.Events.CallEvent;
+import Operator.Gateway.Packets.*;
 import com.cisco.cti.ctios.cil.Call;
 import java.util.Map;
 import java.util.Objects;
@@ -93,10 +94,24 @@ public class Client {
         this.Password = Password;
     }
 
-    public void acceptPacket(Packet packet) {
+    public synchronized void acceptPacket(Packet packet) {
         if (packet instanceof SetStatePacket) {
             manager.setAgentState(((SetStatePacket) packet).getState());
-            this.onState(((SetStatePacket) packet).getState());
+            try {
+                //this.onState(((SetStatePacket) packet).getState());
+                wait(1000);
+            } catch (InterruptedException ex) {}
+            SetStatePacket sp = new SetStatePacket();
+            sp.setState( manager.getAgentState() );
+            this.channel.write( sp );
+        } else if (packet instanceof CallReleasePacket) {
+            manager.releaseCall();
+        } else if (packet instanceof CallAnswerPacket) {
+            manager.answerCall();
+        } else if (packet instanceof CallHoldPacket) {
+            manager.holdCall();
+        } else if (packet instanceof CallUnholdPacket) {
+            manager.unholdCall();
         } else if (packet instanceof CallEndPacket) {
             manager.clearCall();
         } else if (packet instanceof HoldPacket) {
@@ -115,10 +130,7 @@ public class Client {
     }
 
     public void onAgentMode(){
-        //AuthorizePacket ap = new AuthorizePacket();
         manager.loginAgent();
-        //ap.setCode( AuthorizePacket.AUTHORIZATION_OK );
-        //channel.write( ap );
     }
     
     public void onLogin(){
@@ -210,6 +222,18 @@ public class Client {
             }
         }
         return null;
+    }
+
+    public void onCallEsablishedEvent() {
+        this.channel.write(new CallEstablishedPacket());
+    }
+
+    public void onUnheld() {
+        this.channel.write( new CallUnholdPacket() );
+    }
+
+    public void onHold() {
+        this.channel.write( new CallHoldPacket() );
     }
 
     public interface State {

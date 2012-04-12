@@ -10,7 +10,7 @@ import Operator.Gateway.Packets.CallAnswerPacket;
 import Operator.Gateway.Packets.CallBeginPacket;
 import Operator.Gateway.Packets.GetStatePacket;
 import Operator.Gateway.Packets.ErrorPacket;
-import Operator.Gateway.Packets.CallRejectPacket;
+import Operator.Gateway.Packets.CallReleasePacket;
 import Operator.Gateway.Packets.CallEndPacket;
 import Operator.Gateway.Packets.HelloPacket;
 import Operator.Gateway.Packets.AuthorizePacket;
@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.jboss.netty.buffer.ChannelBuffer;
+import sun.util.logging.resources.logging;
 
 /**
  *
@@ -45,9 +46,10 @@ public abstract class Packet {
     
     // Call packets
     final public static Integer CALL_BEGIN = 201;
+    final public static Integer CALL_ESTABLISHED = 206;
     
     final public static Integer CALL_ANSWER = 202;
-    final public static Integer CALL_REJECT = 203;
+    final public static Integer CALL_RELEASE = 203;
     
     final public static Integer CALL_HOLD = 204;
     final public static Integer CALL_UNHOLD = 205;
@@ -64,7 +66,7 @@ public abstract class Packet {
         Packet.packetMap.put(Packet.CALL_BEGIN, new CallBeginPacket());
         
         Packet.packetMap.put(Packet.CALL_ANSWER, new CallAnswerPacket());
-        Packet.packetMap.put(Packet.CALL_REJECT, new CallRejectPacket());
+        Packet.packetMap.put(Packet.CALL_RELEASE, new CallReleasePacket());
         
         Packet.packetMap.put(Packet.CALL_HOLD, new CallHoldPacket());
         Packet.packetMap.put(Packet.CALL_UNHOLD, new CallUnholdPacket());
@@ -122,7 +124,8 @@ public abstract class Packet {
     
     public Packet(){
         //packetId = (int)(new Date().getTime());
-        packetLID = packetId++;
+        Packet.packetId++;
+        packetLID = Packet.packetId+1;
     }
     final public int getPacketId(){
         return packetLID;
