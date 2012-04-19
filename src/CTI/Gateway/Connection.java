@@ -228,7 +228,7 @@ public class Connection implements IGenericEvents {
                 manager.onCallBegin( rArgs );
                 break;
             case CtiOs_Enums.EventID.eCallDataUpdateEvent:
-                
+                manager.onCallDataUpdate(rArgs);
                 break;
             case CtiOs_Enums.EventID.eCallDeliveredEvent:
                 currentCall = rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
@@ -280,7 +280,8 @@ public class Connection implements IGenericEvents {
                 manager.onPostLogout();
                 manager.disconnect();
                 break;
-            case CtiOs_Enums.EventID.eCallFailedEvent:;
+            case CtiOs_Enums.EventID.eCallFailedEvent:
+                manager.onCallClear(rArgs);
                 break;
             default:
                 logger.trace(">? cti event " + CtiOs_EnumStrings.EventIDToString(iEventID));

@@ -277,6 +277,22 @@ public class Manager{
             logger.warn("Unknown call \""+ call.getCallID() +"\" send call originated event");
         }
     }
+
+    void onCallDataUpdate(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)this.getCallByArgs(rArgs);
+        if( null != call){
+            String DialedNumber = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_DIALEDNUMBER);
+            if( null != DialedNumber) {
+                if( DialedNumber.length() > 10 ){
+                    DialedNumber = DialedNumber.substring( DialedNumber.length() - 10 );
+                }
+                ((SimpleCall)call).setNumber( DialedNumber );
+                logger.warn("we are calling: "+DialedNumber);
+            }
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call update event");
+        }
+    }
     
     public class FailedToConnectException extends Exception{}
     public class FailToAuthorizeException extends Exception{

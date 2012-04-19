@@ -76,7 +76,6 @@ public class SimpleCall extends AbstractCall implements CallInterface, Persistab
                 return;
             }
             Integer callDBID = rs.getInt(1);
-            EventHandler.logger.trace( "Insert id: " + callDBID );
             s.close();
             PreparedStatement ps = dbConnection.prepareStatement("INSERT INTO `call_timeline` (`id`, `call`, `type`, `start`) VALUES (NULL, '"+callDBID+"', ?, ?);");
             for (int i = 0; i < timeline.size(); i++) {
@@ -86,7 +85,6 @@ public class SimpleCall extends AbstractCall implements CallInterface, Persistab
                 ps.addBatch();
             }
             ps.executeBatch();
-            EventHandler.logger.trace("Simple call proceed");
         } catch (SQLException ex) {
             EventHandler.logger.error(ex.toString());
         } catch( Exception e){

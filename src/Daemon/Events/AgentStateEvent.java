@@ -34,11 +34,6 @@ public class AgentStateEvent extends AbstractEvent implements PersistableInterfa
                     "INSERT INTO agents_state (`uid`, `time`, `state`) VALUES( (SELECT userID FROM `chimaera`.`users` WHERE `domainName` = '%s' LIMIT 0,1), '%d', '%d')"
                 , login, getTimestamp(), state)
             );
-            s.executeUpdate (
-                String.format(
-                    "INSERT IGNORE INTO agents_state (`uid`, `time`, `state`) VALUES( '1', FROM_UNIXTIME('%d'), '%d')"
-                , getTimestamp(), state)
-            );
         } catch (SQLException ex) {
             EventHandler.logger.error(ex.toString());
         }
