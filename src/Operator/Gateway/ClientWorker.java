@@ -70,6 +70,11 @@ public class ClientWorker {
                     Server.logger.trace("Authorization");
                     if( !cti_session.setAgentMode(ap.getLogin(), ap.getPassword(), ap.getInstrument(), ap.getExtension()) ){
                         client.sendError("Fail to set agent mode");
+                    } else {
+                        client.setLogin( ap.getLogin() );
+                        client.setPassword( ap.getPassword() );
+                        client.setInstrument( ap.getInstrument() );
+                        client.setExtension( ap.getExtension() );
                     }
                 } else { // Странное место, не авторизовались, а уже шлют комманды, надо бы писать в лог.
                     client.sendWarning("Server required authorization.");
@@ -92,7 +97,7 @@ public class ClientWorker {
     private boolean acceptHello(HelloPacket hello){
         if( isUnderstandingReached( hello ) ){ // Если "взаимопонимание достигнуто",
             boolean ctiConnect = this.ctiConnect();
-            Server.logger.warn("Connect cti is "+ctiConnect);
+            //Server.logger.warn("Connect cti is "+ctiConnect);
             return true;
         } else {
             ErrorPacket e = new ErrorPacket(); // Отправим ему пакет с ошибкой

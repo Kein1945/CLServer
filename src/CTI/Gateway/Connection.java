@@ -136,7 +136,7 @@ public class Connection implements IGenericEvents {
     @Override
     public void OnEvent(int iEventID, Arguments rArgs) {
         //if(iEventID != CtiOs_Enums.EventID.eButtonEnablementMaskChange)
-            logger.trace(">>> cti event " + CtiOs_EnumStrings.EventIDToString(iEventID) + " | " + rArgs.toString());
+            logger.trace(">>> cti event " + CtiOs_EnumStrings.EventIDToString(iEventID) + "\t" + rArgs.toString());
         Integer IState;
         Call c;
         switch (iEventID) {
@@ -217,46 +217,34 @@ public class Connection implements IGenericEvents {
                 if( null != DeviceID){
                      currentCallNumber = DeviceID;
                 }
+                manager.onOriginated(rArgs);
                 break;
             case CtiOs_Enums.EventID.eCallBeginEvent:
-                //logger.trace("Call Event!");
                 // Я не знаю это зачем, но пусть на всякий случай ;)
-		String sUID = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
-		Call rCall = (Call) session.GetObjectFromObjectID(sUID);
-		session.SetCurrentCall(rCall);
+                String sUID = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
+                logger.trace("Found call: "+sUID);
+                Call rCall = (Call) session.GetObjectFromObjectID(sUID);
+                session.SetCurrentCall(rCall);
+                manager.onCallBegin( rArgs );
+                break;
+            case CtiOs_Enums.EventID.eCallDataUpdateEvent:
                 
-                String Number = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_ANI);
-                String DeviceId = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_DEVICEID);
-                currentCallType = rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_CALLTYPE);
-                if( null != Number){
-                    manager.onCallBegin( Number, DeviceId );
-                }
                 break;
             case CtiOs_Enums.EventID.eCallDeliveredEvent:
                 currentCall = rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
                 break;
             // Generated after answer call
             case CtiOs_Enums.EventID.eCallEstablishedEvent:
-                //manager.getClientAgent().callStart();
-                c = session.GetCurrentCall();
-                if( null != c ){
-                    Arguments rRequestArgs = new Arguments();
-                    Arguments args = c.GetValueArray(CtiOs_IKeywordIDs.CTIOS_ECC);
-                    if( null == args){
-                        args = new Arguments();
-                    }
-                    args.SetValueUInt("call.start", System.currentTimeMillis());
-                    args.SetValueUInt("call.duration", 0L);
-                    rRequestArgs.SetValue(CtiOs_IKeywordIDs.CTIOS_ECC, args);
-                }
-                manager.onCallEstablished();
+                manager.onCallEstablished(rArgs);
                 break;
             // Generated after unheld call
             case CtiOs_Enums.EventID.eCallRetrievedEvent:
-                manager.onUnheld();
+                logger.trace("Found call: "+rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID));
+                manager.onUnheld(rArgs);
                 break;
             case CtiOs_Enums.EventID.eCallHeldEvent:
-                manager.onHold();
+                logger.trace("Found call: "+rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID));
+                manager.onHold(rArgs);
                 break;
             case CtiOs_Enums.EventID.eRTPStartedEvent:
                 //manager.getClientAgent().callResume();
@@ -264,36 +252,28 @@ public class Connection implements IGenericEvents {
                 break;
             case CtiOs_Enums.EventID.eRTPStoppedEvent:
                 //manager.getClientAgent().callHold();
-                c = session.GetCurrentCall();
-                if( null != c ){
-                    Arguments args = c.GetValueArray(CtiOs_IKeywordIDs.CTIOS_ECC);
-                    if( null != args){
-                        Arguments rRequestArgs = new Arguments();
-                        args = new Arguments();
-                        args.SetValueUInt("call.duration",args.GetValueUIntObj("call.duration")+ (System.currentTimeMillis() - args.GetValueUIntObj("call.start") )/1000L );
-                        rRequestArgs.SetValue(CtiOs_IKeywordIDs.CTIOS_ECC, args);
-                    }
-                }
-                c = session.GetCurrentCall();
-                if( null == c){
-                    c = (Call)session.GetObjectFromObjectID( currentCall );
-                }
-                    Arguments args = c.GetValueArray(CtiOs_IKeywordIDs.CTIOS_ECC);
-                    if( null != args){
-                        Arguments rRequestArgs = new Arguments();
-                        args = new Arguments();
-                        args.SetValueUInt("call.duration",args.GetValueUIntObj("call.duration")+ (System.currentTimeMillis() - args.GetValueUIntObj("call.start") )/1000L );
-                        rRequestArgs.SetValue(CtiOs_IKeywordIDs.CTIOS_ECC, args);
-                    }
-                    manager.onCallClear( c );
+//                c = session.GetCurrentCall();
+//                if( null != c ){
+//                    Arguments args = c.GetValueArray(CtiOs_IKeywordIDs.CTIOS_ECC);
+//                    if( null != args){
+//                        Arguments rRequestArgs = new Arguments();
+//                        args = new Arguments();
+//                        args.SetValueUInt("call.duration",args.GetValueUIntObj("call.duration")+ (System.currentTimeMillis() - args.GetValueUIntObj("call.start") )/1000L );
+//                        rRequestArgs.SetValue(CtiOs_IKeywordIDs.CTIOS_ECC, args);
+//                    }
+//                }
                 break;
-            case CtiOs_Enums.EventID.eCallConnectionClearedEvent:
+            //case CtiOs_Enums.EventID.eCallConnectionClearedEvent:
             case CtiOs_Enums.EventID.eCallClearedEvent:
+                manager.onCallClear( rArgs );
+                logger.trace("Found call: "+rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID));
                 //int callDuration = manager.getClientAgent().callEnd();
                 //server.Server.LOG.trace("Call duration was '"+callDuration+"' seconds");
                 //this.manager.onCommand(new LogCallDurationEvent(callDuration, manager.getClientAgent().getId() ));
                 break;
             case CtiOs_Enums.EventID.eCallEndEvent:
+                logger.trace("Found call: "+rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID));
+                manager.onCallEnd(rArgs);
                 break;
             case CtiOs_Enums.EventID.ePostLogoutEvent:
                 // Call Post processing

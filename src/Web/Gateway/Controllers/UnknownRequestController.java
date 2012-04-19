@@ -55,7 +55,7 @@ public class UnknownRequestController extends AbstractController implements Cont
                 createNotFoundResponse("Server can't proceed request "+getURI()+".<br/>File doesnt exists.");
             }
         } else {
-            createNotFoundResponse("Server can't proceed request "+getURI()+".<br/><a href=\"/agents/list/active\">Active agents list</a>.");
+            createNotFoundResponse("Server can't proceed request "+getURI()+".<br/><br/>Moblie secretary agent: <a href=\"/ms.air\">download</a>");
         }
     }
     

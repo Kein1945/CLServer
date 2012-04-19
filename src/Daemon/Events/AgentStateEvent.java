@@ -13,7 +13,7 @@ import java.sql.Statement;
  *
  * @author bsalmanov
  */
-public class AgentStateEvent extends AbstractEvent implements EventInterface {
+public class AgentStateEvent extends AbstractEvent implements PersistableInterface {
 
     private Integer state;
     private String login;

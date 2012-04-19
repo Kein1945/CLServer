@@ -25,7 +25,7 @@ public class CallUnholdPacket extends Packet {
 
     @Override
     public void send(ChannelBuffer buffer) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        
     }
     
 }

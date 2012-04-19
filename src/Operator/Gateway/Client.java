@@ -4,27 +4,11 @@
  */
 package Operator.Gateway;
 
-import Operator.Gateway.Packets.NotificationPacket;
-import Operator.Gateway.Packets.SetStatePacket;
-import Operator.Gateway.Packets.ButtonMaskPacket;
-import Operator.Gateway.Packets.WarningPacket;
-import Operator.Gateway.Packets.CallBeginPacket;
-import Operator.Gateway.Packets.HoldPacket;
-import Operator.Gateway.Packets.ErrorPacket;
-import Operator.Gateway.Packets.CallEndPacket;
-import Operator.Gateway.Packets.HelloPacket;
-import Operator.Gateway.Packets.AuthorizePacket;
-import Operator.Gateway.Packets.InfoPacket;
 import CTI.Gateway.Manager;
 import Daemon.Events.AgentStateEvent;
-import Daemon.Events.CallEvent;
 import Operator.Gateway.Packets.*;
-import com.cisco.cti.ctios.cil.Call;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 
@@ -46,7 +30,7 @@ public class Client {
     protected Manager manager;
 
     public Manager getManager() {
-        return manager;
+        return this.manager;
     }
 
     public void setManager(Manager manager) {
@@ -114,13 +98,9 @@ public class Client {
             manager.unholdCall();
         } else if (packet instanceof CallEndPacket) {
             manager.clearCall();
-        } else if (packet instanceof HoldPacket) {
-            //throw new UnsupportedOperationException("Hold command must be realized");
-            manager.holdCall();
-            // Manager.GetCurrentCall()Hold()
         }
     }
-
+    
     public void onConnected() {
         channel.write(new HelloPacket());
     }
@@ -162,13 +142,7 @@ public class Client {
         CallBeginPacket p = new CallBeginPacket();
         p.setDevice(DeviceNumber);
         p.setNumber(IncommingNumber);
-        ChannelFuture write = channel.write(p);
-        try {
-            write.await(10000);
-            Server.logger.trace("Looks like writed");
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        channel.write(p);
     }
 
     public synchronized void onButtonEnablementMaskChange(Integer mask) {
@@ -177,9 +151,9 @@ public class Client {
         channel.write(packet);
     }
 
-    public void onCallClear(Call call) {
-        CallEvent c = new CallEvent(call);
-        Daemon.Server.events.proceedEvent(c);
+    public void onCallClear() {
+        //CallEvent c = new CallEvent(call);
+        //Daemon.Server.events.proceedEvent(c);
     }
 
     public void sendError(String text) {

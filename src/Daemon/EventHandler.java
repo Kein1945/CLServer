@@ -4,7 +4,7 @@
  */
 package Daemon;
 
-import Daemon.Events.EventInterface;
+import Daemon.Events.PersistableInterface;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -33,15 +33,14 @@ public class EventHandler {
         
     }
     
-    public void proceedEvent(EventInterface e){
-        /*
+    public void proceedEvent(PersistableInterface e){
         e.proceed(getConnection());
         try {
             getConnection().close();
         } catch (SQLException ex) {
             java.util.logging.Logger.getLogger(EventHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        connection = null;*/
+        connection = null;
     }
     
     public Connection getConnection(){
@@ -56,7 +55,6 @@ public class EventHandler {
     }
     
     public boolean isConnectionOk(){
-        //return true;
         return (null != getConnection());
     }
     

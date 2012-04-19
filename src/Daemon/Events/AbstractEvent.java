@@ -4,8 +4,6 @@
  */
 package Daemon.Events;
 
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -13,18 +11,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class AbstractEvent {
 
-    private long createTime;
+    private Integer createTime;
     
     public AbstractEvent() {
-        createTime = (new Date().getTime());
+        createTime = (int) (System.currentTimeMillis() / 1000L);
     }
 
-    public long getCreateTime() {
+    public Integer getCreateTime() {
         return createTime;
     }
     
-    public long getTimestamp(){
-        return TimeUnit.MILLISECONDS.toSeconds(createTime);
+    public Integer getTimestamp(){
+        return (int) (System.currentTimeMillis() / 1000L);
     }
     
 }

@@ -4,13 +4,17 @@
  */
 package CTI.Gateway;
 
+import CTI.Call.CallInterface;
+import CTI.Call.SimpleCall;
 import Operator.Gateway.Client;
 import com.cisco.cti.ctios.cil.Agent;
 import com.cisco.cti.ctios.cil.Arguments;
 import com.cisco.cti.ctios.cil.Call;
 import com.cisco.cti.ctios.cil.CtiOs_Enums;
 import com.cisco.cti.ctios.util.CtiOs_IKeywordIDs;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 public class Manager{
@@ -18,6 +22,7 @@ public class Manager{
     // Все объекты класса всех подключенных операторов
     protected Properties conf;
     
+    protected Map<String, CallInterface> CallPool = new ConcurrentHashMap<>();
     protected Client client;
     protected Connection connect;
     // Индикация что клиент авторизова на CTI сервере
@@ -148,14 +153,33 @@ public class Manager{
      * @param DialNumber - номер с которого звонят
      * @param DeviceId - внутренний номер оператора
      */
-    public synchronized void onCallBegin(String DialNumber, String DeviceId){
-        logger.info("Incomming dial: " + DialNumber + " > " + DeviceId);
-        client.onCommingDial(DialNumber, DeviceId);
+    public synchronized void onCallBegin(Arguments rArgs){
+        String Number = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_ANI);
+        String DeviceId = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_DEVICEID);
+        //currentCallType = rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_CALLTYPE);
+        String callUniqID = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
+        CallInterface call = new SimpleCall( client.getLogin(), callUniqID );
+        CallPool.put( callUniqID, call);
+        if( null != Number){
+            ((SimpleCall)call).setNumber(Number);
+            ((SimpleCall)call).setIncome();
+            ((SimpleCall)call).onBegin();
+            logger.info("Incomming dial: " + Number + " > " + DeviceId);
+            client.onCommingDial(Number, DeviceId);   
+        }
     }
 
     
-    void onCallClear(Call c) {
-        client.onCallClear(c);
+    void onCallClear(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)getCallByArgs(rArgs);
+        if( null != call ){
+            call.onCleared();
+            Daemon.Server.events.proceedEvent( call );
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call cleared event");
+        }
+        //client.onCallClear(c);
+        client.onState( getAgentState() );
     }
     
     public void onError(String text){
@@ -185,15 +209,40 @@ public class Manager{
         this.connect.getSession().GetCurrentCall().Answer( new Arguments() );
     }
 
-    void onCallEstablished() {
+    void onCallEstablished(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)getCallByArgs(rArgs);
+        if( null != call ){
+            call.onEstablished();
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call established event");
+        }
         client.onCallEsablishedEvent();
+    }
+    
+    protected CallInterface getCallByArgs(Arguments rArgs){
+        String uniqID = rArgs.GetValueString(CtiOs_IKeywordIDs.CTIOS_UNIQUEOBJECTID);
+        return getCallByID(uniqID);
+    }
+    
+    public CallInterface getCallByID(String uniqID){
+        if( CallPool.containsKey(uniqID) ){
+            return CallPool.get( uniqID );
+        } else {
+            return null;
+        }
     }
 
     public void releaseCall() {
         this.connect.getSession().GetCurrentCall().ClearConnection( new Arguments() );
     }
 
-    void onUnheld() {
+    void onUnheld(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)this.getCallByArgs(rArgs);
+        if( null != call){
+            call.onUnhold();
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call unhold event");
+        }
         this.client.onUnheld();
     }
 
@@ -201,8 +250,32 @@ public class Manager{
         this.connect.getCurrentCall().Retrieve(new Arguments());
     }
 
-    void onHold() {
+    void onHold(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)this.getCallByArgs(rArgs);
+        if( null != call){
+            call.onHold();
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call hold event");
+        }
         this.client.onHold();
+    }
+
+    void onCallEnd(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)this.getCallByArgs(rArgs);
+        if( null != call){
+            call.onEnd();
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call end event");
+        }
+    }
+
+    void onOriginated(Arguments rArgs) {
+        SimpleCall call = (SimpleCall)this.getCallByArgs(rArgs);
+        if( null != call){
+            ((SimpleCall)call).setOutgoing();
+        } else {
+            logger.warn("Unknown call \""+ call.getCallID() +"\" send call originated event");
+        }
     }
     
     public class FailedToConnectException extends Exception{}

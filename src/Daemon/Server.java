@@ -34,11 +34,11 @@ public class Server {
             events = new EventHandler(conf.getProperty("events.db.url"), conf.getProperty("events.db.user"), conf.getProperty("events.db.password"));
         } catch (NoConfigurationFoundException ex) {
             logger.error("No configuration found for [events.db.*]. Required url, user, password.");
-            //return;
+            return;
         }
         if( !events.isConnectionOk() ){
             logger.error("Can't connect to events database server.");
-            //return;
+            return;
         }
         
         // Start gates -----------------------
