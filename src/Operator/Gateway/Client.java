@@ -4,6 +4,7 @@
  */
 package Operator.Gateway;
 
+import CTI.Call.SimpleCall;
 import CTI.Gateway.Manager;
 import Daemon.Events.AgentStateEvent;
 import Operator.Gateway.Packets.*;
@@ -20,7 +21,7 @@ public class Client {
 
     protected static Map<Client, Manager> connections = new ConcurrentHashMap();
 
-    
+
     protected boolean authorized = false;
     protected String Login;
     protected String Password;
@@ -100,11 +101,11 @@ public class Client {
             manager.clearCall();
         }
     }
-    
+
     public void onConnected() {
         channel.write(new HelloPacket());
     }
-    
+
     public void onDisconnected(){
         removeClient(this);
     }
@@ -112,7 +113,7 @@ public class Client {
     public void onAgentMode(){
         manager.loginAgent();
     }
-    
+
     public void onLogin(){
         authorized = true;
         connections.put(this, this.manager);
@@ -121,14 +122,14 @@ public class Client {
         channel.write(ap);
         this.onState( manager.getAgentState() );
     }
-    
+
     public void onLoginFail(String error){
         AuthorizePacket ap = new AuthorizePacket();
         ap.setReason(error);
         ap.setCode( AuthorizePacket.NOT_AUTHORIZED_YET );
         channel.write(ap);
     }
-    
+
     public synchronized void onState(Integer state) {
         SetStatePacket p = new SetStatePacket();
         p.setState(state);
@@ -138,10 +139,10 @@ public class Client {
         //channel.write(p);
     }
 
-    public synchronized void onCommingDial(String IncommingNumber, String DeviceNumber) {
+    public synchronized void onCommingDial( SimpleCall call ) {
         CallBeginPacket p = new CallBeginPacket();
-        p.setDevice(DeviceNumber);
-        p.setNumber(IncommingNumber);
+        p.setDevice( call.getDevice() );
+        p.setNumber( call.getNumber() );
         channel.write(p);
     }
 
@@ -170,23 +171,23 @@ public class Client {
         notify.setMessage(message);
         channel.write(notify);
     }
-    
-    
-    
+
+
+
     public static Map<Client, Manager> getClients(){
         return connections;  // static Map<Client, Manager> connections = new ConcurrentHashMap()
     }
-    
+
     public static Manager removeClient(Client client){
         return connections.remove(client);
     }
-    
-    
+
+
     /**
-     * 
+     *
      * Метод используется для получения клиента по имени, если он активен
      * @param clientLogin
-     * @return 
+     * @return
      */
     public static Manager getClient(String clientLogin){
         for (Map.Entry<Client, Manager> entry : connections.entrySet()) {

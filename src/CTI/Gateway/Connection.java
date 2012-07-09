@@ -14,14 +14,14 @@ import org.apache.log4j.Logger;
  */
 public class Connection implements IGenericEvents {
     public static final Logger logger = Logger.getLogger(Connection.class);
-    
+
     private CtiOsSession session;
     private Boolean isConnected = false;
     protected String currentCall = null;
     protected String currentCallDeviceId;
     protected String currentCallNumber;
     protected Integer currentCallType;
-    
+
     private Manager manager;
 
     public Call getCurrentCall() {
@@ -39,16 +39,16 @@ public class Connection implements IGenericEvents {
     public CtiOsSession getSession() {
         return session;
     }
-    
+
     public boolean connect(String HostA, int PortA, String HostB, int PortB, int HeartBeat){
         session = new CtiOsSession();
         if (session == null) {
             logger.error("Failed to create CtiOsSession.");
             return false;
         }
-        
+
         Integer errorCode;
-        
+
         errorCode = session.AddEventListener(this, CtiOs_Enums.SubscriberList.eAllInOneList);
         if( errorCode < 0){
             logger.error("Failed to add subscriber for AllInOne events.");
@@ -69,11 +69,11 @@ public class Connection implements IGenericEvents {
         }
         return true;
     }
-    
+
     public boolean isConnected(){
         return isConnected;
     }
-    
+
     public boolean setAgentMode( String login, String password, String instrument, Integer extension ){
         Agent agent = new Agent();
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_LOGINNAME, login);
@@ -81,17 +81,17 @@ public class Connection implements IGenericEvents {
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTINSTRUMENT, instrument);
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_PERIPHERALID, extension);
         agent.SetValue( CtiOs_IKeywordIDs.CTIOS_AUTOLOGIN, 1  );
-        
+
         return 1 == session.SetAgent( agent );
     }
-    
+
     public void loginAgent(){
         Arguments rArgs = new Arguments();
         rArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTSREADY, 1 );
         logger.trace("Trying to login...");
         session.GetCurrentAgent().Login(rArgs);
     }
-    
+
     /**
      * Закрытие сессии подклчюения к CTI
      */
@@ -107,31 +107,31 @@ public class Connection implements IGenericEvents {
         session.DestroyWaitObject(rWaitObj);
         session.RemoveEventListener(this, CtiOs_Enums.SubscriberList.eAllInOneList);
     }
-    
+
     public Agent getAgent(){
         return session.GetCurrentAgent();
     }
-    
+
     protected synchronized void onSetAgentMode(){
         notify();
     }
-    
+
     /**
      * Отправка нового состояния оператора на CTI
-     * @param state 
+     * @param state
      */
     public void setAgentState(Integer state){
         Arguments rReqArgs = new Arguments();
         rReqArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTSTATE, state);
         rReqArgs.SetValue( CtiOs_IKeywordIDs.CTIOS_AGENTID, getAgent().GetValueString( CtiOs_IKeywordIDs.CTIOS_AGENTID ));
-        
+
         getAgent().SetAgentState(rReqArgs);
     }
-    
+
     /**
      * Метод вызываемый при получении нового события с CTI сервера
      * @param iEventID
-     * @param rArgs 
+     * @param rArgs
      */
     @Override
     public void OnEvent(int iEventID, Arguments rArgs) {
@@ -158,9 +158,9 @@ public class Connection implements IGenericEvents {
             case CtiOs_Enums.EventID.eCTIOSFailureEvent:
                 if( null != rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_ERRORMESSAGE ) ){
                     logger.error("CTIOS Server event failure: "+rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_ERRORMESSAGE ) + " / " + rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_FAILURECODE ));
-                    if( CtiOs_Enums.FailureCode.eAgentAlreadyLoggedIn == rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_FAILURECODE ) 
+                    if( CtiOs_Enums.FailureCode.eAgentAlreadyLoggedIn == rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_FAILURECODE )
                             ||  CtiOs_Enums.FailureCode.eRequiredArgMissing == rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_FAILURECODE ) ){
-                        
+
                         manager.onLoginFail( rArgs.GetValueString( CtiOs_IKeywordIDs.CTIOS_ERRORMESSAGE ) );
                     } else if(CtiOs_Enums.FailureCode.eInconsistentAgentData == rArgs.GetValueIntObj(CtiOs_IKeywordIDs.CTIOS_FAILURECODE)){
                     }
@@ -176,7 +176,7 @@ public class Connection implements IGenericEvents {
                     //manager.onAgentState( IState.intValue() );
                 manager.onLogin();
                 break;
-                
+
             case CtiOs_Enums.EventID.eSetAgentModeEvent: // Получаем при успешной установке режима AgentMode для сессии
                 manager.onAgentMode();
                 break;
@@ -248,7 +248,7 @@ public class Connection implements IGenericEvents {
                 break;
             case CtiOs_Enums.EventID.eRTPStartedEvent:
                 //manager.getClientAgent().callResume();
-                
+
                 break;
             case CtiOs_Enums.EventID.eRTPStoppedEvent:
                 //manager.getClientAgent().callHold();
@@ -283,12 +283,15 @@ public class Connection implements IGenericEvents {
             case CtiOs_Enums.EventID.eCallFailedEvent:
                 manager.onCallClear(rArgs);
                 break;
+            case CtiOs_Enums.EventID.eCallTransferredEvent:
+                manager.onTransferred(rArgs);
+                break;
             default:
                 logger.trace(">? cti event " + CtiOs_EnumStrings.EventIDToString(iEventID));
         }
     }
-    
-    
+
+
     public class FailedToConnectException extends Exception{}
     public class FailedToAuthorizeException extends Exception{
 

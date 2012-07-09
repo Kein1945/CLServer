@@ -6,7 +6,6 @@ package Web.Gateway.Controllers;
 
 import CTI.Gateway.Manager;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 
 /**
  *
@@ -32,12 +31,12 @@ public class MakeCallController extends AbstractController implements Controller
             proceedFail(ntlmUser);
         }
     }
-    
+
     protected void proceedOK(Manager manager, String number){
         createOKResponse("Calling to "+number+"..");
         manager.makeCall(number);
     }
-    
+
     protected void proceedFail(String user){
         createNotFoundResponse("Did you foget run client? User \""+user+"\" not connected.");
     }
